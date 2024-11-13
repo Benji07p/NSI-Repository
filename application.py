@@ -39,8 +39,22 @@ def obtenir_meteo(latitude, longitude, decalage):
     et la description pour l'heure concernée'''
     # récupérations des données via l'API
     # source : https://openweathermap.org/forecast5
-    ...
-    return {... : {}}
+    url = f'https://api.openweathermap.org/data/2.5/forecast?lat={latitude}&lon={longitude}&appid={API_KEY}&units=metric&lang=fr'
+    requete = requests.get(url)
+    donnees = requete.json()
+    meteo = {}
+    for val in donnees['list']:
+        temp = round(val['main']['temp'])
+        info = val['weather'][0]['description']
+        icon = f"https://openweathermap.org/img/wn/{val['weather'][0]['icon']}@2x.png"
+        annee = int(val['dt_txt'][:4])
+        mois = MOIS[int(val['dt_txt'][5:7])-1]
+        jour = int(val['dt_txt'][8:10])
+        heure = int(val['dt_txt'][11:13]) + decalage
+        if f'{jour} {mois} {annee}' not in meteo:
+            meteo[f'{jour} {mois} {annee}'] = {}
+        meteo[f'{jour} {mois} {annee}'][heure] = [temp, icon, info]
+    return meteo
 
 def parking_nantes():
     '''construire une carte en plaçant les parkings de Nantes'''
@@ -105,7 +119,8 @@ def parking_proche2(coordonnees):
     url = f'https://data.nantesmetropole.fr/api/explore/v2.1/catalog/datasets/244400404_parkings-publics-nantes-disponibilites/records?limit={NB_PARKING}'
     requete = requests.get(url)
     donnees = requete.json()
-
+    if coordonnees is None:
+        return None
     # recherche des trois parkings les plus proches
     tab = []
     dico = {}
@@ -146,6 +161,8 @@ def parking_proche(coordonnees):
     requete = requests.get(url)
     donnees = requete.json()
     # rajout de marqueur sur la carte
+    if parking_proche2(coordonnees) is None:
+        return "Erreur 404"
     tab = parking_proche2(coordonnees)
     for loopr in range(len(donnees["results"])):
         for loop1 in range(len(tab)):
